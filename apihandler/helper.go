@@ -7,43 +7,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
+
+
 func pageResolver(ctx context.Context, tileColl *mongo.Collection, page *pb.Page) (*pb.ResultPage, error) {
-	var (
-		resultPage pb.ResultPage
-		resultRow  *pb.ResultRow
-		err        error
-	)
-	//resultChan := make(chan *pb.ResultRow)
-	resultPage.Carousels = page.Carousel
-	resultPage.PageId = page.PageId
-	resultPage.PageName = page.PageName
-
-	for _, row := range page.Row {
-		if resultRow, err = rowResolver(ctx, tileColl, row); err != nil {
-			return nil, err
-		} else {
-			resultPage.Rows = append(resultPage.Rows, resultRow)
-		}
-	}
-	return &resultPage, err
-}
-
-func rowResolver(ctx context.Context, tileColl *mongo.Collection, row *pb.Row) (*pb.ResultRow, error) {
-	switch row.RowType {
-	case pb.RowType_Editorial:
-		{
-			return makeEditorialRow(ctx, tileColl, row)
-		}
-	case pb.RowType_Dynamic:
-		{
-			return makeDynamicRow(ctx, tileColl, row)
-		}
-	default:
-		return nil, nil
-	}
-}
-
-func advancePageResolver(ctx context.Context, tileColl *mongo.Collection, page *pb.Page) (*pb.ResultPage, error) {
 	var (
 		resultPage pb.ResultPage
 		err        error
@@ -60,11 +26,10 @@ func advancePageResolver(ctx context.Context, tileColl *mongo.Collection, page *
 	defer close(errChan)
 
 	for _, row := range page.Row {
-		go advanceRowResolver(ctx, tileColl, row, resultRowChan, errChan)
+		go rowResolver(ctx, tileColl, row, resultRowChan, errChan)
 	}
 
 	for i := 0; i < len(page.Row) ; i++ {
-
 		select {
 		case err = <-errChan:
 			{
@@ -79,12 +44,24 @@ func advancePageResolver(ctx context.Context, tileColl *mongo.Collection, page *
 	return &resultPage, nil
 }
 
-func advanceRowResolver(ctx context.Context, tileColl *mongo.Collection, row *pb.Row, resultRowChan chan *pb.ResultRow, errChan chan error) {
+func rowResolver(ctx context.Context, tileColl *mongo.Collection, row *pb.Row, resultRowChan chan *pb.ResultRow, errChan chan error) {
 	switch row.RowType {
+	case pb.RowType_Editorial:
+		{
+			contentChan := make(chan *pb.Content)
+			go makeEditorialRow(ctx, tileColl, row, contentChan, errChan)
+			var resultRow pb.ResultRow
+			resultRow.RowName = row.RowName
+			resultRow.RowIndex = row.RowIndex
+			for content := range contentChan {
+				resultRow.Tiles = append(resultRow.Tiles, content)
+			}
+			resultRowChan <- &resultRow
+		}
 	case pb.RowType_Dynamic:
 		{
 			contentChan := make(chan *pb.Content)
-			go advanceDynamicRow(ctx, tileColl, row, contentChan, errChan)
+			go makeDynamicRow(ctx, tileColl, row, contentChan, errChan)
 			var resultRow pb.ResultRow
 			resultRow.RowName = row.RowName
 			resultRow.RowIndex = row.RowIndex
@@ -96,39 +73,20 @@ func advanceRowResolver(ctx context.Context, tileColl *mongo.Collection, row *pb
 	}
 }
 
-func advanceDynamicRow(ctx context.Context, tileColl *mongo.Collection, row *pb.Row, contentChan chan *pb.Content, errChan chan error) {
+func makeDynamicRow(ctx context.Context, tileColl *mongo.Collection, row *pb.Row, contentChan chan *pb.Content, errChan chan error) {
 	if cur, err := tileColl.Aggregate(ctx, makeDynamicPL(row)); err != nil {
 		errChan <- err
 	} else {
-
-		var (
-			resultRow pb.ResultRow
-			err       error
-		)
-		resultRow.RowName = row.RowName
-		resultRow.RowIndex = row.RowIndex
-
-		for cur.Next(ctx) {
-			var content *pb.Content
-			if err = cur.Decode(&content); err != nil {
-				errChan <- err
-			} else {
-				contentChan <- content
-			}
-		}
-		close(contentChan)
-		if err = cur.Close(ctx); err != nil {
-			errChan <- err
-		}
+		makeDeliveryRow(ctx, cur, row, contentChan, errChan)
 	}
 }
 
 
-func makeEditorialRow(ctx context.Context, tileColl *mongo.Collection, row *pb.Row) (*pb.ResultRow, error) {
+func makeEditorialRow(ctx context.Context, tileColl *mongo.Collection, row *pb.Row ,contentChan chan *pb.Content, errChan chan error ) {
 	if cur, err := tileColl.Aggregate(ctx, makeEditorialPL(row.RowTileIds)); err != nil {
-		return nil, err
+		errChan <- err
 	} else {
-		return makeDeliveryRow(ctx, cur, row)
+		makeDeliveryRow(ctx, cur, row, contentChan, errChan)
 	}
 }
 
@@ -152,15 +110,6 @@ func makeEditorialPL(rowIds []string) mongo.Pipeline {
 	return stages
 }
 
-
-func makeDynamicRow(ctx context.Context, tileColl *mongo.Collection, row *pb.Row) (*pb.ResultRow, error) {
-	if cur, err := tileColl.Aggregate(ctx, makeDynamicPL(row)); err != nil {
-		return nil, err
-	} else {
-		return makeDeliveryRow(ctx, cur, row)
-	}
-}
-
 func makeDynamicPL(row *pb.Row) mongo.Pipeline {
 
 	stages := mongo.Pipeline{}
@@ -175,6 +124,7 @@ func makeDynamicPL(row *pb.Row) mongo.Pipeline {
 	stages = append(stages, bson.D{{"$match", queryArray}})
 
 	//Row Sort
+	//TODO need to work on it. Not WORKING
 	//if len(row.GetRowSort()) > 0 {
 	//	queryArray = queryArray[:0]
 	//	for key, value := range row.GetRowSort() {
@@ -202,7 +152,7 @@ func makeDynamicPL(row *pb.Row) mongo.Pipeline {
 	return stages
 }
 
-func makeDeliveryRow(ctx context.Context, cur *mongo.Cursor, row *pb.Row) (*pb.ResultRow, error) {
+func makeDeliveryRow(ctx context.Context, cur *mongo.Cursor, row *pb.Row, contentChan chan *pb.Content, errChan chan error){
 	var (
 		resultRow pb.ResultRow
 		err       error
@@ -213,14 +163,13 @@ func makeDeliveryRow(ctx context.Context, cur *mongo.Cursor, row *pb.Row) (*pb.R
 	for cur.Next(ctx) {
 		var content *pb.Content
 		if err = cur.Decode(&content); err != nil {
-			return nil, err
+			errChan <- err
 		} else {
-			resultRow.Tiles = append(resultRow.Tiles, content)
+			contentChan <- content
 		}
 	}
+	close(contentChan)
 	if err = cur.Close(ctx); err != nil {
-		return nil, err
-	} else {
-		return &resultRow, err
+		errChan <- err
 	}
 }

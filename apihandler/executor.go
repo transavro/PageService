@@ -72,7 +72,7 @@ func (s Server) ResolvePage(ctx context.Context, req *pb.GetPageReq) (*pb.Result
 	if page, err := s.GetPage(ctx, req); err != nil{
 		return nil, err
 	}else {
-		return advancePageResolver(ctx, s.TilesCollection, page)
+		return pageResolver(ctx, s.TilesCollection, page)
 	}
 }
 
@@ -85,7 +85,7 @@ func (s Server) Catalog(_ *empty.Empty, stream pb.PageService_CatalogServer) err
 		for cur.Next(stream.Context()){
 			if err = cur.Decode(&page); err != nil {
 				return err
-			}else if resultPage, err := advancePageResolver(stream.Context(), s.TilesCollection, page); err != nil{
+			}else if resultPage, err := pageResolver(stream.Context(), s.TilesCollection, page); err != nil{
 				return err
 			}else if err = stream.Send(resultPage); err != nil {
 				return err
