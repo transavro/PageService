@@ -80,7 +80,6 @@ func (s Server) Catalog(_ *empty.Empty, stream pb.PageService_CatalogServer) err
 	if cur, err := getAllDB(stream.Context(), s.PageCollection); err != nil {
 		return err
 	}else {
-
 		var page *pb.Page
 		for cur.Next(stream.Context()){
 			if err = cur.Decode(&page); err != nil {

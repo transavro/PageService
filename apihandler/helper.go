@@ -5,6 +5,8 @@ import (
 	"context"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 
@@ -14,7 +16,6 @@ func pageResolver(ctx context.Context, tileColl *mongo.Collection, page *pb.Page
 		resultPage pb.ResultPage
 		err        error
 	)
-	//resultChan := make(chan *pb.ResultRow)
 	resultPage.Carousels = page.Carousel
 	resultPage.PageId = page.PageId
 	resultPage.PageName = page.PageName
@@ -45,32 +46,32 @@ func pageResolver(ctx context.Context, tileColl *mongo.Collection, page *pb.Page
 }
 
 func rowResolver(ctx context.Context, tileColl *mongo.Collection, row *pb.Row, resultRowChan chan *pb.ResultRow, errChan chan error) {
+	var (
+		contentChan = make(chan *pb.Content)
+		resultRow pb.ResultRow
+	)
+
 	switch row.RowType {
 	case pb.RowType_Editorial:
 		{
-			contentChan := make(chan *pb.Content)
 			go makeEditorialRow(ctx, tileColl, row, contentChan, errChan)
-			var resultRow pb.ResultRow
-			resultRow.RowName = row.RowName
-			resultRow.RowIndex = row.RowIndex
-			for content := range contentChan {
-				resultRow.Tiles = append(resultRow.Tiles, content)
-			}
-			resultRowChan <- &resultRow
 		}
 	case pb.RowType_Dynamic:
 		{
-			contentChan := make(chan *pb.Content)
 			go makeDynamicRow(ctx, tileColl, row, contentChan, errChan)
-			var resultRow pb.ResultRow
-			resultRow.RowName = row.RowName
-			resultRow.RowIndex = row.RowIndex
-			for content := range contentChan {
-				resultRow.Tiles = append(resultRow.Tiles, content)
-			}
-			resultRowChan <- &resultRow
+		}
+	case pb.RowType_Web:
+		{
+			go makeWebRow(row, contentChan, errChan)
 		}
 	}
+
+	resultRow.RowName = row.RowName
+	resultRow.RowIndex = row.RowIndex
+	for content := range contentChan {
+		resultRow.Tiles = append(resultRow.Tiles, content)
+	}
+	resultRowChan <- &resultRow
 }
 
 func makeDynamicRow(ctx context.Context, tileColl *mongo.Collection, row *pb.Row, contentChan chan *pb.Content, errChan chan error) {
@@ -80,7 +81,6 @@ func makeDynamicRow(ctx context.Context, tileColl *mongo.Collection, row *pb.Row
 		makeDeliveryRow(ctx, cur, row, contentChan, errChan)
 	}
 }
-
 
 func makeEditorialRow(ctx context.Context, tileColl *mongo.Collection, row *pb.Row ,contentChan chan *pb.Content, errChan chan error ) {
 	if cur, err := tileColl.Aggregate(ctx, makeEditorialPL(row.RowTileIds)); err != nil {
@@ -151,6 +151,26 @@ func makeDynamicPL(row *pb.Row) mongo.Pipeline {
 
 	return stages
 }
+
+func makeWebRow(row *pb.Row ,contentChan chan *pb.Content, errChan chan error )  {
+	if v, ok := row.RowFilters["source"]; ok && v.Values[0] == "youtube" {
+		if pl, ok := row.RowFilters["playlist"]; ok {
+			go youtubePlaylist(pl.Values[0], contentChan, errChan)
+		}else if pl, ok = row.RowFilters["channel"]; ok {
+			go youtubeChannel(pl.Values[0], contentChan, errChan)
+		}else if pl, ok = row.RowFilters["search"]; ok {
+			go youtubeSearch(pl.Values[0], contentChan, errChan)
+		}else {
+			close(contentChan)
+			errChan <- status.Errorf(codes.InvalidArgument, "Row=%s  Source youtube doesnt have any playlist, channel of search id.", row.RowName)
+		}
+	}else {
+		close(contentChan)
+		errChan <- status.Errorf(codes.InvalidArgument, "Row=%s  Source youtube not found in WEB_TYPE", row.RowName)
+	}
+}
+
+
 
 func makeDeliveryRow(ctx context.Context, cur *mongo.Cursor, row *pb.Row, contentChan chan *pb.Content, errChan chan error){
 	var (
