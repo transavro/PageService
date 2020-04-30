@@ -72,7 +72,7 @@ func (s Server) ResolvePage(ctx context.Context, req *pb.GetPageReq) (*pb.Result
 	if page, err := s.GetPage(ctx, req); err != nil{
 		return nil, err
 	}else {
-		return pageResolver(ctx, s.TilesCollection, page)
+		return advancePageResolver(ctx, s.TilesCollection, page)
 	}
 }
 
