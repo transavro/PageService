@@ -85,7 +85,7 @@ func (s Server) Catalog(_ *empty.Empty, stream pb.PageService_CatalogServer) err
 		for cur.Next(stream.Context()){
 			if err = cur.Decode(&page); err != nil {
 				return err
-			}else if resultPage, err := pageResolver(stream.Context(), s.TilesCollection, page); err != nil{
+			}else if resultPage, err := advancePageResolver(stream.Context(), s.TilesCollection, page); err != nil{
 				return err
 			}else if err = stream.Send(resultPage); err != nil {
 				return err
