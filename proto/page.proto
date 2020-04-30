@@ -1,0 +1,299 @@
+syntax = "proto3";
+
+
+package cloudwalker;
+
+
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+import "google/api/annotations.proto";
+import "protoc-gen-swagger/options/annotations.proto";
+import "github.com/mwitkow/go-proto-validators/validator.proto";
+
+
+service PageService{
+
+    // creating a page here we will not check if the page already exist or not. a set of pages will create a Catlog
+    rpc CreatePage(Page) returns(Page){
+        option (google.api.http) = {
+                post:"/createPage"
+                body: "*"
+        };
+    }
+
+    rpc GetPage(GetPageReq) returns (Page) {
+        option (google.api.http) = {
+                get:"/getPage/{page_id}"
+        };
+    }
+
+    rpc GetAllPages(google.protobuf.Empty) returns (stream Page){
+        option (google.api.http) = {
+                get:"/getAllPage"
+        };
+    }
+
+    rpc UpdatePage(UpdatePageReq) returns (Page) {
+        option (google.api.http) = {
+                put:"/updatePage/{page_id}"
+                body: "*"
+        };
+    }
+
+    rpc DeletePage(DeletePageReq) returns (google.protobuf.Empty){
+        option (google.api.http) = {
+                delete:"/deletePage/{page_id}"
+        };
+    }
+
+    rpc ResolvePage(GetPageReq) returns (ResultPage){
+        option (google.api.http) = {
+                get:"/resolvePage/{page_id}"
+        };
+    }
+
+    rpc Catalog(google.protobuf.Empty) returns(stream ResultPage){
+        option (google.api.http) = {
+                get:"/catalog"
+        };
+    }
+
+    rpc GetDropDown(DropDownReq) returns (DropDownResp){
+        option (google.api.http) = {
+                get:"/getDropDown/{field}"
+        };
+    }
+}
+
+
+
+
+
+
+
+message Page{
+    string page_name = 1 [(validator.field) = {
+    msg_exists : true
+    string_not_empty : true
+    human_error: "Page Name cannot be empty."
+    }];
+
+    string page_logo = 3;
+
+    repeated Row row = 4;
+
+    repeated Carousel carousel = 5;
+
+    string page_id = 6;
+
+    google.protobuf.Timestamp created_at = 7;
+    google.protobuf.Timestamp updated_at = 8;
+}
+
+message Carousel{
+    string target = 1 [(validator.field) = {
+    msg_exists : true
+    string_not_empty : true
+    human_error: "Deeplink cannot be empty."
+    }];
+
+    string package = 2 [(validator.field) = {
+    msg_exists : true
+    string_not_empty : true
+    human_error: "App Package Name cannot be empty."
+    }];
+
+    string image_url = 3 [(validator.field) = {
+    msg_exists : true
+    string_not_empty : true
+    human_error: "Image Url cannot be empty."
+    }];
+
+    string title = 4 [(validator.field) = {
+    msg_exists : true
+    string_not_empty : true
+    human_error: "Carousel Title cannot be empty."
+    }];
+
+    int32 index = 5 [(validator.field) = {
+    regex: "^[0-100]*$"
+    msg_exists : true
+    int_gt : -1
+    int_lt : 100
+    human_error: "Carousel Index must be a digit and >= 0 and < 100."
+    }];
+}
+
+
+enum RowLayout{
+    Landscape = 0;
+    Portrait = 1;
+    Square = 2;
+    Circle = 3;
+}
+
+enum RowType{
+    Editorial = 0;
+    Recommendation_CB  = 1 ;
+    Dynamic  = 2;
+    Recommendation_CF  = 3 ;
+    Web = 4;
+}
+
+
+
+message Row{
+    RowLayout row_layout = 1 [(validator.field) = {
+    is_in_enum : true
+    msg_exists : true
+    human_error: "Row Layout must be set. Landscape = 0, Portrait = 1, Square = 2, Circle = 3."
+    }];
+
+    string row_name = 2 [(validator.field) = {
+    msg_exists : true
+    string_not_empty : true
+    human_error: "Row Name cannot be empty."
+    }];
+
+    int32 row_index = 3 [(validator.field) = {
+    regex: "^[0-100]*$"
+    msg_exists : true
+    int_gt : -1
+    int_lt : 100
+    human_error: "Row Index must be a digit and in the range of 0 - 100 ."
+    }];
+
+
+    map<string, RowFilterValue> row_filters = 4;
+
+    map<string, sint32> row_sort = 5 [(validator.field) = {
+    regex: "^[-1-2]*$"
+    msg_exists : true
+    int_gt : -2
+    int_lt : 2
+    human_error: "Row Sort must be set. -1 for sort descending and 1 for sort ascending."
+    }];
+
+    repeated string row_tile_ids = 6;
+
+    RowType row_type = 7 [(validator.field) = {
+    is_in_enum : true
+    human_error: "Row Type must be set. Editorial = 0 , Recommendation_CB  = 1, Dynamic  = 2, Recommendation_CF  = 3, Web = 4"
+    }];
+
+    bool shuffle = 8;
+}
+
+message RowFilterValue {
+    repeated string values = 1;
+}
+
+
+
+// get Page input
+message GetPageReq{
+    string page_id = 1 [(validator.field) = {
+    msg_exists : true
+    string_not_empty : true
+    human_error: "Page id cannot be empty."
+    }];
+}
+
+
+// update Page req
+message UpdatePageReq{
+
+    string page_id = 1 [(validator.field) = {
+    msg_exists : true
+    string_not_empty : true
+    human_error: "Page id cannot be empty."
+    }];
+
+    Page page = 2 [(validator.field) = {
+    msg_exists : true
+    string_not_empty : true
+    human_error: "Page to update cannot be empty."
+    }];
+
+}
+
+
+message DeletePageReq{
+    string page_id = 1 [(validator.field) = {
+    msg_exists : true
+    string_not_empty : true
+    human_error: "Page id cannot be empty."
+    }];
+}
+
+
+message ResultPage{
+    string page_id = 1;
+    string page_name = 2;
+    repeated Carousel carousels = 3;
+    repeated ResultRow rows = 4;
+}
+
+message ResultRow{
+    string row_name = 1;
+    int32 row_index = 2;
+    repeated Content tiles = 3;
+}
+
+
+
+// new schema
+message Content {
+    string title = 8;
+    repeated string poster = 1;
+    repeated string portriat = 2;
+    TileType type = 3;
+    bool is_detail_page = 4;
+    string content_id = 5;
+    repeated Play play = 6;
+    repeated string video = 7;
+}
+
+message Play {
+    Monetize monetize = 5;
+    string target = 1;
+    string source = 2;
+    string package = 3;
+    string type = 4;
+}
+
+
+enum Monetize {
+    Free = 0;
+    Paid = 1;
+    Subscription = 2;
+    Rent = 3;
+}
+
+
+enum TileType {
+    ImageTile = 0;
+    VideoTile = 1;
+    FeatureTile = 2;
+    AdvertiseTile = 3;
+    CarouselTile = 4;
+}
+
+
+
+
+
+message DropDownReq{
+    string field = 1 [(validator.field) = {
+    msg_exists : true
+    string_not_empty : true
+    human_error: "DB filed must exists to get suggested values of it."
+    }];
+}
+
+message DropDownResp{
+    repeated string result = 1;
+}
+
+
+
