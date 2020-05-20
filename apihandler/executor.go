@@ -30,17 +30,17 @@ func (s Server) GetPage(ctx context.Context, req *pb.GetPageReq) (*pb.Page, erro
 func (s Server) GetAllPages(_ *empty.Empty, stream pb.PageService_GetAllPagesServer) (err error) {
 	if cur, err := getAllDB(stream.Context(), s.PageCollection); err != nil {
 		return err
-	}else {
+	} else {
 
 		var page *pb.Page
-		for cur.Next(stream.Context()){
+		for cur.Next(stream.Context()) {
 			if err = cur.Decode(&page); err != nil {
 				return err
-			}else if err = stream.Send(page); err != nil{
+			} else if err = stream.Send(page); err != nil {
 				return err
 			}
 		}
-		if err = cur.Close(stream.Context()); err != nil{
+		if err = cur.Close(stream.Context()); err != nil {
 			return err
 		}
 		stream.Context().Done()
@@ -53,9 +53,9 @@ func (s Server) UpdatePage(ctx context.Context, req *pb.UpdatePageReq) (*pb.Page
 	var err error
 	if err = pageValidator(ctx, s.TilesCollection, req.Page); err != nil {
 		return nil, err
-	}else if err = updatePageDB(ctx, s.PageCollection, req.PageId, req.Page); err != nil {
+	} else if err = updatePageDB(ctx, s.PageCollection, req.PageId, req.Page); err != nil {
 		return nil, err
-	}else {
+	} else {
 		return req.Page, nil
 	}
 }
@@ -64,14 +64,11 @@ func (s Server) DeletePage(ctx context.Context, req *pb.DeletePageReq) (*empty.E
 	return &empty.Empty{}, deletePageDB(ctx, s.PageCollection, req.PageId)
 }
 
-
-
-
 func (s Server) ResolvePage(ctx context.Context, req *pb.GetPageReq) (*pb.ResultPage, error) {
 	// get Page from id
-	if page, err := s.GetPage(ctx, req); err != nil{
+	if page, err := s.GetPage(ctx, req); err != nil {
 		return nil, err
-	}else {
+	} else {
 		return pageResolver(ctx, s.TilesCollection, page)
 	}
 }
@@ -79,18 +76,18 @@ func (s Server) ResolvePage(ctx context.Context, req *pb.GetPageReq) (*pb.Result
 func (s Server) Catalog(_ *empty.Empty, stream pb.PageService_CatalogServer) error {
 	if cur, err := getAllDB(stream.Context(), s.PageCollection); err != nil {
 		return err
-	}else {
+	} else {
 		var page *pb.Page
-		for cur.Next(stream.Context()){
+		for cur.Next(stream.Context()) {
 			if err = cur.Decode(&page); err != nil {
 				return err
-			}else if resultPage, err := pageResolver(stream.Context(), s.TilesCollection, page); err != nil{
+			} else if resultPage, err := pageResolver(stream.Context(), s.TilesCollection, page); err != nil {
 				return err
-			}else if err = stream.Send(resultPage); err != nil {
+			} else if err = stream.Send(resultPage); err != nil {
 				return err
 			}
 		}
-		if err = cur.Close(stream.Context()); err != nil{
+		if err = cur.Close(stream.Context()); err != nil {
 			return err
 		}
 		stream.Context().Done()

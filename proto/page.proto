@@ -13,7 +13,7 @@ import "github.com/mwitkow/go-proto-validators/validator.proto";
 
 service PageService{
 
-    // creating a page here we will not check if the page already exist or not. a set of pages will create a Catlog
+    // Always create a new page. we will not check if the page already exist or not.
     rpc CreatePage(Page) returns(Page){
         option (google.api.http) = {
                 post:"/createPage"
@@ -21,18 +21,22 @@ service PageService{
         };
     }
 
+    // will get the page from its page ID.
     rpc GetPage(GetPageReq) returns (Page) {
         option (google.api.http) = {
                 get:"/getPage/{page_id}"
         };
     }
 
+    // will get all the page from the DB to create a Catlog(Book).
     rpc GetAllPages(google.protobuf.Empty) returns (stream Page){
         option (google.api.http) = {
                 get:"/getAllPage"
         };
     }
 
+
+    //replace a particular page of the given ID
     rpc UpdatePage(UpdatePageReq) returns (Page) {
         option (google.api.http) = {
                 put:"/updatePage/{page_id}"
@@ -40,24 +44,28 @@ service PageService{
         };
     }
 
+    // Delete a page of the given ID.
     rpc DeletePage(DeletePageReq) returns (google.protobuf.Empty){
         option (google.api.http) = {
                 delete:"/deletePage/{page_id}"
         };
     }
 
+    // Resolve the page to actual content to show in the UI.
     rpc ResolvePage(GetPageReq) returns (ResultPage){
         option (google.api.http) = {
                 get:"/resolvePage/{page_id}"
         };
     }
 
+    // get All the resolved pages to form a catlog
     rpc Catalog(google.protobuf.Empty) returns(stream ResultPage){
         option (google.api.http) = {
                 get:"/catalog"
         };
     }
 
+    // INTERNAL but can used as seperatly to get all the possible value of a filed in DB.
     rpc GetDropDown(DropDownReq) returns (DropDownResp){
         option (google.api.http) = {
                 get:"/getDropDown/{field}"
@@ -278,8 +286,6 @@ enum TileType {
     AdvertiseTile = 3;
     CarouselTile = 4;
 }
-
-
 
 
 

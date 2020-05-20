@@ -13,6 +13,7 @@
   "paths": {
     "/catalog": {
       "get": {
+        "summary": "get All the resolved pages to form a catlog",
         "operationId": "Catalog",
         "responses": {
           "200": {
@@ -29,7 +30,7 @@
     },
     "/createPage": {
       "post": {
-        "summary": "creating a page here we will not check if the page already exist or not. a set of pages will create a Catlog",
+        "summary": "Always create a new page. we will not check if the page already exist or not.",
         "operationId": "CreatePage",
         "responses": {
           "200": {
@@ -56,6 +57,7 @@
     },
     "/deletePage/{page_id}": {
       "delete": {
+        "summary": "Delete a page of the given ID.",
         "operationId": "DeletePage",
         "responses": {
           "200": {
@@ -80,6 +82,7 @@
     },
     "/getAllPage": {
       "get": {
+        "summary": "will get all the page from the DB to create a Catlog(Book).",
         "operationId": "GetAllPages",
         "responses": {
           "200": {
@@ -96,6 +99,7 @@
     },
     "/getDropDown/{field}": {
       "get": {
+        "summary": "INTERNAL but can used as seperatly to get all the possible value of a filed in DB.",
         "operationId": "GetDropDown",
         "responses": {
           "200": {
@@ -120,6 +124,7 @@
     },
     "/getPage/{page_id}": {
       "get": {
+        "summary": "will get the page from its page ID.",
         "operationId": "GetPage",
         "responses": {
           "200": {
@@ -144,6 +149,7 @@
     },
     "/resolvePage/{page_id}": {
       "get": {
+        "summary": "Resolve the page to actual content to show in the UI.",
         "operationId": "ResolvePage",
         "responses": {
           "200": {
@@ -168,6 +174,7 @@
     },
     "/updatePage/{page_id}": {
       "put": {
+        "summary": "replace a particular page of the given ID",
         "operationId": "UpdatePage",
         "responses": {
           "200": {
