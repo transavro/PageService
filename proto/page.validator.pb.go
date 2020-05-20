@@ -7,11 +7,11 @@ import (
 	fmt "fmt"
 	math "math"
 	proto "github.com/golang/protobuf/proto"
-	_ "github.com/golang/protobuf/ptypes/empty"
 	_ "github.com/golang/protobuf/ptypes/timestamp"
 	_ "google.golang.org/genproto/googleapis/api/annotations"
 	_ "github.com/grpc-ecosystem/grpc-gateway/protoc-gen-swagger/options"
 	_ "github.com/mwitkow/go-proto-validators"
+	_ "github.com/golang/protobuf/ptypes/empty"
 	regexp "regexp"
 	github_com_mwitkow_go_proto_validators "github.com/mwitkow/go-proto-validators"
 )
@@ -105,20 +105,6 @@ func (this *RowFilterValue) Validate() error {
 func (this *GetPageReq) Validate() error {
 	if this.PageId == "" {
 		return github_com_mwitkow_go_proto_validators.FieldError("PageId", fmt.Errorf(`Page id cannot be empty.`))
-	}
-	return nil
-}
-func (this *UpdatePageReq) Validate() error {
-	if this.PageId == "" {
-		return github_com_mwitkow_go_proto_validators.FieldError("PageId", fmt.Errorf(`Page id cannot be empty.`))
-	}
-	if nil == this.Page {
-		return github_com_mwitkow_go_proto_validators.FieldError("Page", fmt.Errorf("message must exist"))
-	}
-	if this.Page != nil {
-		if err := github_com_mwitkow_go_proto_validators.CallValidatorIfExists(this.Page); err != nil {
-			return github_com_mwitkow_go_proto_validators.FieldError("Page", err)
-		}
 	}
 	return nil
 }

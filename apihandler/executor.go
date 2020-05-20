@@ -5,6 +5,8 @@ import (
 	"github.com/golang/protobuf/ptypes/empty"
 	"go.mongodb.org/mongo-driver/mongo"
 	"golang.org/x/net/context"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 type Server struct {
@@ -49,14 +51,16 @@ func (s Server) GetAllPages(_ *empty.Empty, stream pb.PageService_GetAllPagesSer
 	}
 }
 
-func (s Server) UpdatePage(ctx context.Context, req *pb.UpdatePageReq) (*pb.Page, error) {
+func (s Server) UpdatePage(ctx context.Context, req *pb.Page) (*pb.Page, error) {
 	var err error
-	if err = pageValidator(ctx, s.TilesCollection, req.Page); err != nil {
+	if len(req.PageId) == 0 {
+		return nil, status.Error(codes.InvalidArgument,"Page ID is missing in the Data");
+	}else if err = pageValidator(ctx, s.TilesCollection, req); err != nil {
 		return nil, err
-	} else if err = updatePageDB(ctx, s.PageCollection, req.PageId, req.Page); err != nil {
+	} else if err = updatePageDB(ctx, s.PageCollection, req.PageId, req); err != nil {
 		return nil, err
 	} else {
-		return req.Page, nil
+		return req, nil
 	}
 }
 

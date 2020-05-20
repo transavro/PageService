@@ -37,7 +37,7 @@ service PageService{
 
 
     //replace a particular page of the given ID
-    rpc UpdatePage(UpdatePageReq) returns (Page) {
+    rpc UpdatePage(Page) returns (Page) {
         option (google.api.http) = {
                 put:"/updatePage/{page_id}"
                 body: "*"
@@ -208,22 +208,6 @@ message GetPageReq{
 }
 
 
-// update Page req
-message UpdatePageReq{
-
-    string page_id = 1 [(validator.field) = {
-    msg_exists : true
-    string_not_empty : true
-    human_error: "Page id cannot be empty."
-    }];
-
-    Page page = 2 [(validator.field) = {
-    msg_exists : true
-    string_not_empty : true
-    human_error: "Page to update cannot be empty."
-    }];
-
-}
 
 
 message DeletePageReq{

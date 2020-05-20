@@ -67,7 +67,7 @@ func rowValidator(ctx context.Context, tileColl *mongo.Collection, rows []*pb.Ro
 		
 
 
-		// checl rowSort
+		// check rowSort
 		for k, v := range row.GetRowSort() {
 			if v == 0 {
 				return status.Errorf(codes.InvalidArgument, "%s RowSort %s=0 is invalid. -1 for sort descending and 1 for sort ascending.", row.RowName, k)

@@ -196,7 +196,7 @@
             "in": "body",
             "required": true,
             "schema": {
-              "$ref": "#/definitions/cloudwalkerUpdatePageReq"
+              "$ref": "#/definitions/cloudwalkerPage"
             }
           }
         ],
@@ -470,18 +470,6 @@
         "CarouselTile"
       ],
       "default": "ImageTile"
-    },
-    "cloudwalkerUpdatePageReq": {
-      "type": "object",
-      "properties": {
-        "page_id": {
-          "type": "string"
-        },
-        "page": {
-          "$ref": "#/definitions/cloudwalkerPage"
-        }
-      },
-      "title": "update Page req"
     },
     "protobufAny": {
       "type": "object",

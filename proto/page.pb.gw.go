@@ -138,7 +138,7 @@ func request_PageService_GetAllPages_0(ctx context.Context, marshaler runtime.Ma
 }
 
 func request_PageService_UpdatePage_0(ctx context.Context, marshaler runtime.Marshaler, client PageServiceClient, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq UpdatePageReq
+	var protoReq Page
 	var metadata runtime.ServerMetadata
 
 	newReader, berr := utilities.IOReaderFactory(req.Body)
@@ -173,7 +173,7 @@ func request_PageService_UpdatePage_0(ctx context.Context, marshaler runtime.Mar
 }
 
 func local_request_PageService_UpdatePage_0(ctx context.Context, marshaler runtime.Marshaler, server PageServiceServer, req *http.Request, pathParams map[string]string) (proto.Message, runtime.ServerMetadata, error) {
-	var protoReq UpdatePageReq
+	var protoReq Page
 	var metadata runtime.ServerMetadata
 
 	newReader, berr := utilities.IOReaderFactory(req.Body)
